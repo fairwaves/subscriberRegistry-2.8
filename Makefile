@@ -1,4 +1,4 @@
-TRUNK=../../openbts/trunk
+TRUNK=../openbts-p2.8
 COM=$(TRUNK)/CommonLibs
 #SR=$(TRUNK)/subscriberRegistry/trunk-public-staging
 LOCALLIBS=$(COM)/Logger.cpp $(COM)/Timeval.cpp $(COM)/Threads.cpp $(COM)/Sockets.cpp $(COM)/Configuration.cpp $(COM)/sqlite3util.cpp SubscriberRegistry.cpp servershare.cpp
