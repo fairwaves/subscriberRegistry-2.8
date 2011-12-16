@@ -16,7 +16,7 @@ my $db = DBI->connect("dbi:SQLite:dbname=/etc/OpenBTS/sipauthserve.db","","") or
 # be verbose?
 my $verbose = 1;
 
-if(@ARGV != 2 or @ARGV != 1) { die "Usage example: $0 FileName.cpp [DEBUG]\n"; }
+if(@ARGV != 2 and @ARGV != 1) { die "Usage example: $0 FileName.cpp [DEBUG]\n"; }
 
 my $key = 'Log.Level.'.$ARGV[0];
 my $exist = $db->selectrow_array(qq/select VALUESTRING from CONFIG where "KEYSTRING" == ?/, undef, "$key");
@@ -36,6 +36,7 @@ else
 
 if($ARGV[1] and $verbose)
 {
-    print ", set to ".$db->selectrow_array(qq/select VALUESTRING from CONFIG where "KEYSTRING" == ?/, undef, "$key")."\n";
+    print ", set to ".$db->selectrow_array(qq/select VALUESTRING from CONFIG where "KEYSTRING" == ?/, undef, "$key");
 }
+print "\n";
 $db->disconnect;
