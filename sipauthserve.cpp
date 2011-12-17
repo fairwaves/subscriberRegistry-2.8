@@ -171,7 +171,7 @@ char *processBuffer(char *buffer)
 	string imsiTo = imsiClean(imsiToSip(sip));
 //	if ((imsi == "EXIT") && (imsiTo == "EXIT")) exit(0); // for testing only
 	if (!imsiFound(imsi)) {
-		LOG(NOTICE) << "imsi unknown";
+		LOG(NOTICE) << "imsi " << imsi << " unknown";
 		// imsi problem => 404 IMSI Not Found
 		osip_message_set_status_code (response, 404);
 		osip_message_set_reason_phrase (response, osip_strdup("IMSI Not Found"));
