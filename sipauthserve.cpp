@@ -169,7 +169,7 @@ char *processBuffer(char *buffer)
 
 	string imsi = imsiClean(imsiFromSip(sip));
 	string imsiTo = imsiClean(imsiToSip(sip));
-	if ((imsi == "EXIT") && (imsiTo == "EXIT")) exit(0); // for testing only
+//	if ((imsi == "EXIT") && (imsiTo == "EXIT")) exit(0); // for testing only
 	if (!imsiFound(imsi)) {
 		LOG(NOTICE) << "imsi unknown";
 		// imsi problem => 404 IMSI Not Found
