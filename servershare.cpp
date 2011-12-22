@@ -111,10 +111,11 @@ string generateRand(string imsi)
 			ret = wRand;
 		}
 	}
+	LOG(DEBUG) << "returning RAND " << ret << endl;
 	return ret;
 }
 
-bool strEqual(string a, string b)
+inline bool strEqual(string a, string b)
 {
 	return 0 == strcasecmp(a.c_str(), b.c_str());
 }
@@ -124,6 +125,7 @@ bool strEqual(string a, string b)
 // may cache sres and rand
 bool authenticate(string imsi, string randx, string sres, string *kc)
 {
+  LOG(DEBUG) << "authenticating IMSI " << imsi << " with  RAND " << randx << " against SRES " << sres << endl;
 	string ki = imsiGet(imsi, "ki");
 	bool ret;
 	if (ki.length() == 0) {
