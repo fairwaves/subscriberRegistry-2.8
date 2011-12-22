@@ -116,6 +116,80 @@ bool strEqual(string a, string b)
 	return 0 == strcasecmp(a.c_str(), b.c_str());
 }
 
+// verify sres given rand and imsi's ki
+// may set kc
+// may cache sres and rand
+bool authenticate(string imsi, string randx, string sres, string *kc)
+{
+	string ki = imsiGet(imsi, "ki");
+	bool ret;
+	if (ki.length() == 0) {
+		// Ki is unknown
+		string upstream_server =
+			gConfig.defines("SubscriberRegistry.UpstreamServer") ?
+			gConfig.getStr("SubscriberRegistry.UpstreamServer") :
+			"";
+		if (upstream_server.length() != 0) {
+			LOG(INFO) << "ki unknown, upstream server";
+			// there's an upstream server for authentication.
+			// TODO - call the upstream server
+			ret = false;
+		} else {
+			// there's no upstream server for authentication.  fake it.
+			string sres2 = imsiGet(imsi, "sres");
+			if (sres2.length() == 0) {
+				LOG(INFO) << "ki unknown, no upstream server, sres not cached";
+				// first time - cache sres and rand so next time
+				// correct cell phone will calc same sres from same rand
+				imsiSet(imsi, "sres", sres);
+				imsiSet(imsi, "rand", randx);
+				ret = true;
+			} else {
+				LOG(INFO) << "ki unknown, no upstream server, sres cached";
+				// check against cached values of rand and sres
+				string rand2 = imsiGet(imsi, "rand");
+				// TODO - on success, compute and return kc
+				LOG(DEBUG) << "comparing " << sres << " to " << sres2 << " and " << randx << " to " << rand2;
+				ret = strEqual(sres, sres2) && strEqual(randx, rand2);
+			}
+		}
+	} else {
+		LOG(INFO) << "ki known";
+		// Ki is known, so do normal authentication
+		ostringstream os;
+		// per user value from subscriber registry
+		string a3a8 = imsiGet(imsi, "a3_a8");
+		if (a3a8.length() == 0) {
+			// config value is default
+			a3a8 = gConfig.getStr("SubscriberRegistry.A3A8");
+		}
+		os << a3a8 << " 0x" << ki << " 0x" << randx;
+		// must not put ki into the log
+		// LOG(INFO) << "running " << os.str();
+		FILE *f = popen(os.str().c_str(), "r");
+		if (f == NULL) {
+			LOG(CRIT) << "error: popen failed";
+			return false;
+		}
+		char sres2[26];
+		char *str = fgets(sres2, 26, f);
+		if (str == NULL || strlen(str) != 25) {
+			LOG(CRIT) << "error: popen result failed";
+			return false;
+		}
+		int st = pclose(f);
+		if (st == -1) {
+			LOG(CRIT) << "error: pclose failed";
+			return false;
+		}
+		// first 8 chars are SRES;  rest are Kc
+		sres2[8] = 0;
+		LOG(INFO) << "result = " << sres2;
+		ret = strEqual(sres, sres2);
+	}
+	LOG(INFO) << "returning = " << ret;
+	return ret;
+}
 void decodeQuery(map<string,string> &args)
 {
 	string query;

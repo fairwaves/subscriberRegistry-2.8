@@ -176,13 +176,63 @@ char *processBuffer(char *buffer)
 		osip_message_set_status_code (response, 404);
 		osip_message_set_reason_phrase (response, osip_strdup("IMSI Not Found"));
 	} else {
+		// look for rand and sres in Authorization header (assume imsi same as in from)
+		string randx;
+		string sres;
+		// sip parser is not working reliably for Authorization, so we'll do the parsing
+		char *RAND = strcasestr(buffer, "nonce=");
+		char *SRES = strcasestr(buffer, "response=");
+		if (RAND && SRES) {
+			// find RAND digits
+			RAND += 6;
+			while (!isalnum(*RAND)) { RAND++; }
+			RAND[32] = 0;
+			int j=0;
+			while(isalnum(RAND[j])) { j++; }
+			RAND[j] = '\0';
+			// find SRES digits
+			SRES += 9;
+			while (!isalnum(*SRES)) { SRES++; }
+			int i=0;
+			while(isalnum(SRES[i])) { i++; }
+			SRES[i] = '\0';
+			LOG(INFO) << "rand = /" << RAND << "/";
+			LOG(INFO) << "sres = /" << SRES << "/";
+		}
+		if (!RAND || !SRES) {
+			LOG(NOTICE) << "imsi known, 1st register";
+			// no rand and sres => 401 Unauthorized
+			osip_message_set_status_code (response, 401);
+			osip_message_set_reason_phrase (response, osip_strdup("Unauthorized"));
+			// but include rand in www_authenticate
+			osip_www_authenticate_t *auth;
+			osip_www_authenticate_init(&auth);
+			// auth type is required by osip_www_authenticate_to_str (and therefore osip_message_to_str)
+			string auth_type = "Digest";
+			osip_www_authenticate_set_auth_type(auth, osip_strdup(auth_type.c_str()));
+			// returning RAND in www_authenticate header
+			string randz = generateRand(imsi);
+			osip_www_authenticate_set_nonce(auth, osip_strdup(randz.c_str()));
+			i = osip_list_add (&response->www_authenticates, auth, -1);
+			if (i < 0) LOG(ERR) << "problem adding www_authenticate";
+		} else {
+			string kc;
+			bool sres_good = authenticate(imsi, RAND, SRES, &kc);
+			LOG(INFO) << "imsi known, 2nd register, good = " << sres_good;
+			if (sres_good) {
 		// sres matches rand => 200 OK
 		osip_message_set_status_code (response, 200);
 		osip_message_set_reason_phrase (response, osip_strdup("OK"));
 		// And register it.
-		LOG(INFO) << "success, registering for IP address " << remote_host << ":" << remote_port;
+		LOG(INFO) << imsi << " success, registering for IP address " << remote_host << ":" << remote_port;
 		imsiSet(imsi,"ipaddr",remote_host);
 		imsiSet(imsi,"port",remote_port);
+			} else {
+				// sres does not match rand => 401 Unauthorized
+				osip_message_set_status_code (response, 401);
+				osip_message_set_reason_phrase (response, osip_strdup("Unauthorized"));
+			}
+		}
 	}
 
 	prettyPrint("response", response);
