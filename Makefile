@@ -6,14 +6,17 @@ LIBS=$(LOCALLIBS) -losipparser2 -losip2 -lc -lpthread -lsqlite3 `pkg-config --li
 INCLUDES=-I$(COM) -I$(SQL)
 CPPFLAGS=-g -Wall -Wno-deprecated
 
-all: srmanager.cgi sipauthserve
+all: srmanager.cgi subscriberserver.cgi sipauthserve
 
 srmanager.cgi: srmanager.cpp $(LOCALLIBS)
 	g++ -o srmanager.cgi $(CPPFLAGS) $(INCLUDES) srmanager.cpp $(LIBS)
+
+subscriberserver.cgi: subscriberserver.cpp $(LOCALLIBS)
+	g++ -o subscriberserver.cgi $(CPPFLAGS) $(INCLUDES) subscriberserver.cpp $(LIBS)
 
 sipauthserve: sipauthserve.cpp $(LOCALLIBS)
 	g++ -o sipauthserve $(CPPFLAGS) $(INCLUDES) sipauthserve.cpp $(LIBS)
 
 clean:
-	rm -f srmanager.cgi sipauthserve test.SubscriberRegistry/test
+	rm -f srmanager.cgi subscriberserver.cgi sipauthserve test.SubscriberRegistry/test
 	rm -r -f *.dSYM
