@@ -30,7 +30,10 @@
 #include <cstdlib>
 #include <Configuration.h>
 #include <string.h>
-
+extern "C" {
+#include <osmocom/gsm/comp128.h>
+#include <osmocom/gsm/a5.h>
+}
 #include "servershare.h"
 #include "sqlite3.h"
 #include "Logger.h"
@@ -163,29 +166,38 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 			// config value is default
 			a3a8 = gConfig.getStr("SubscriberRegistry.A3A8");
 		}
-		os << a3a8 << " 0x" << ki << " 0x" << randx;
-		// must not put ki into the log
-		// LOG(INFO) << "running " << os.str();
-		FILE *f = popen(os.str().c_str(), "r");
-		if (f == NULL) {
-			LOG(CRIT) << "error: popen failed";
-			return false;
+		if (a3a8.length() != 0) {// fallback: use external program
+		  os << a3a8 << " 0x" << ki << " 0x" << randx;
+		  // must not put ki into the log
+		  LOG(INFO) << "running " << a3a8 << " fallback" << endl;
+		  FILE *f = popen(os.str().c_str(), "r");
+		  if (f == NULL) {
+		    LOG(CRIT) << "error: popen failed";
+		    return false;
+		  }
+		  char sres2[26];
+		  char *str = fgets(sres2, 26, f);
+		  if (str == NULL || strlen(str) != 25) {
+		    LOG(CRIT) << "error: popen result failed";
+		    return false;
+		  }
+		  int st = pclose(f);
+		  if (st == -1) {
+		    LOG(CRIT) << "error: pclose failed";
+		    return false;
+		  }
+		  // first 8 chars are SRES;  rest are Kc
+		  sres2[8] = 0;
+		  LOG(INFO) << "result = " << sres2;
+		  ret = strEqual(sres, sres2);
+		} else {// rely on normal library routine
+		  uint64_t Kc;
+		  uint8_t SRES[5];
+		  comp128((uint8_t *)imsi.c_str(), (uint8_t *)randx.c_str(), (uint8_t *)&SRES, (uint8_t *)&Kc);
+		  SRES[4] = 0;// NULL-terminate before string construction
+		  LOG(INFO) << "computed SRES = " << SRES;
+		  ret = strEqual(sres, (char *)SRES);
 		}
-		char sres2[26];
-		char *str = fgets(sres2, 26, f);
-		if (str == NULL || strlen(str) != 25) {
-			LOG(CRIT) << "error: popen result failed";
-			return false;
-		}
-		int st = pclose(f);
-		if (st == -1) {
-			LOG(CRIT) << "error: pclose failed";
-			return false;
-		}
-		// first 8 chars are SRES;  rest are Kc
-		sres2[8] = 0;
-		LOG(INFO) << "result = " << sres2;
-		ret = strEqual(sres, sres2);
 	}
 	LOG(INFO) << "returning = " << ret;
 	return ret;
