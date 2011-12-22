@@ -42,7 +42,6 @@
 using namespace std;
 
 ConfigurationTable gConfig("/etc/OpenBTS/OpenBTS.db");
-Log dummy("subscriberserver",gConfig.getStr("Log.Level").c_str(),LOG_LOCAL7);
 
 // just using this for the database access
 SubscriberRegistry gSubscriberRegistry;
@@ -176,18 +175,18 @@ void respond()
 	}
 }
 
-int main()
-{
-	cout << "Content-Type: text\n\n";
-	srand ( time(NULL) + (int)getpid() );
-	// decode the http query
-	decodeQuery(gArgs);
-	// write the http query into the log file
-	logQuery();
-	// put the http response into the global array @response
-	generateResponse();
-	// write the http response to the log file
-	logResponse();
-	// print out the http response to stdout
-	respond();
+int main() {
+  gLogInit("subscriberserver", gConfig.getStr("Log.Level").c_str(), LOG_LOCAL7);
+  cout << "Content-Type: text\n\n";
+  srand ( time(NULL) + (int)getpid() );
+  // decode the http query
+  decodeQuery(gArgs);
+  // write the http query into the log file
+  logQuery();
+  // put the http response into the global array @response
+  generateResponse();
+  // write the http response to the log file
+  logResponse();
+  // print out the http response to stdout
+  respond();
 }
