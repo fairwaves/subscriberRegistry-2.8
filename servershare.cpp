@@ -168,7 +168,15 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 			// config value is default
 			a3a8 = gConfig.getStr("SubscriberRegistry.A3A8");
 		}
-		if (a3a8.length() != 0) {// fallback: use external program
+		if (0 == a3a8.length() || "INTERNAL" == a3a8) {// rely on normal library routine
+		  uint64_t Kc;
+		  uint8_t SRES[5];
+		  comp128((uint8_t *)imsi.c_str(), (uint8_t *)randx.c_str(), (uint8_t *)&SRES, (uint8_t *)&Kc);
+		  SRES[4] = 0;// NULL-terminate before string construction
+		  LOG(INFO) << "computed SRES = " << SRES;
+		  ret = strEqual(sres, (char *)SRES);
+		} 
+		else {// fallback: use external program
 		  os << a3a8 << " 0x" << ki << " 0x" << randx;
 		  // must not put ki into the log
 		  LOG(INFO) << "running " << a3a8 << " fallback" << endl;
@@ -192,13 +200,6 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 		  sres2[8] = 0;
 		  LOG(INFO) << "result = " << sres2;
 		  ret = strEqual(sres, sres2);
-		} else {// rely on normal library routine
-		  uint64_t Kc;
-		  uint8_t SRES[5];
-		  comp128((uint8_t *)imsi.c_str(), (uint8_t *)randx.c_str(), (uint8_t *)&SRES, (uint8_t *)&Kc);
-		  SRES[4] = 0;// NULL-terminate before string construction
-		  LOG(INFO) << "computed SRES = " << SRES;
-		  ret = strEqual(sres, (char *)SRES);
 		}
 	}
 	LOG(INFO) << "returning = " << ret;
