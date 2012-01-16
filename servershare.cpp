@@ -170,10 +170,12 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 		}
 		if (0 == a3a8.length() || "INTERNAL" == a3a8) {// rely on normal library routine
 		  uint64_t Kc;
-		  uint8_t SRES[5];
+		  uint8_t SRES[4];
 		  comp128((uint8_t *)imsi.c_str(), (uint8_t *)randx.c_str(), (uint8_t *)&SRES, (uint8_t *)&Kc);
-		  SRES[4] = 0;// NULL-terminate before string construction
-		  LOG(INFO) << "computed SRES = " << SRES;
+		  char oss[9];
+		  oss[8] = 0;// NULL-terminate before string construction
+		  snprintf(oss, 9, "%02X%02X%02X%02X", SRES[0], SRES[1], SRES[2], SRES[3]);
+		  LOG(INFO) << "computed SRES = " << oss;
 		  ret = strEqual(sres, (char *)SRES);
 		} 
 		else {// fallback: use external program
