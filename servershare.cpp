@@ -174,7 +174,7 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 		  uint8_t SRES[5];
 		  uint8_t Ki[16], Rand[16];
 		  if(osmo_hexparse(ki.c_str(), Ki, 16) != 16 || osmo_hexparse(randx.c_str(), Rand, 16) != 16)
-		  { LOG(ALERT) << "failed to parse Ki or RAND!"; ret = 4; }
+		  { LOG(ALERT) << "failed to parse Ki or RAND!"; ret = false; }
 		  else
 		  {
 		   comp128(Ki, Rand, (uint8_t *)&SRES, (uint8_t *)&Kc);
@@ -182,7 +182,8 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 		   oss[8] = 0; SRES[4] = 0; // NULL-terminate before string construction
 		   snprintf(oss, 9, "%02X%02X%02X%02X", SRES[0], SRES[1], SRES[2], SRES[3]);
 		   LOG(INFO) << "computed SRES = " << oss;
-		   ret = strEqual(sres, (char *)SRES);
+		   if(0 == sres.compare(0, 8, (char *)SRES, 8)) ret = true;
+		   else ret = false;
 		  }
 		} 
 		else {// fallback: use external program
