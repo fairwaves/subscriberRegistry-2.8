@@ -33,6 +33,7 @@
 extern "C" {
 #include <osmocom/gsm/comp128.h>
 #include <osmocom/gsm/a5.h>
+#include <osmocom/core/utils.h>
 }
 #include "servershare.h"
 #include "sqlite3.h"
@@ -170,13 +171,19 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 		}
 		if (0 == a3a8.length() || "INTERNAL" == a3a8) {// rely on normal library routine
 		  uint64_t Kc;
-		  uint8_t SRES[4];
-		  comp128((uint8_t *)imsi.c_str(), (uint8_t *)randx.c_str(), (uint8_t *)&SRES, (uint8_t *)&Kc);
-		  char oss[9];
-		  oss[8] = 0;// NULL-terminate before string construction
-		  snprintf(oss, 9, "%02X%02X%02X%02X", SRES[0], SRES[1], SRES[2], SRES[3]);
-		  LOG(INFO) << "computed SRES = " << oss;
-		  ret = strEqual(sres, (char *)SRES);
+		  uint8_t SRES[5];
+		  uint8_t Ki[16], Rand[16];
+		  if(osmo_hexparse(ki.c_str(), Ki, 16) != 16 || osmo_hexparse(randx.c_str(), Rand, 16) != 16)
+		  { LOG(ALERT) << "failed to parse Ki or RAND!"; ret = 4; }
+		  else
+		  {
+		   comp128(Ki, Rand, (uint8_t *)&SRES, (uint8_t *)&Kc);
+		   char oss[9];
+		   oss[8] = 0; SRES[4] = 0; // NULL-terminate before string construction
+		   snprintf(oss, 9, "%02X%02X%02X%02X", SRES[0], SRES[1], SRES[2], SRES[3]);
+		   LOG(INFO) << "computed SRES = " << oss;
+		   ret = strEqual(sres, (char *)SRES);
+		  }
 		} 
 		else {// fallback: use external program
 		  os << a3a8 << " 0x" << ki << " 0x" << randx;
