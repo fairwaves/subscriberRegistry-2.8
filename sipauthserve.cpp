@@ -271,7 +271,7 @@ main(int argc, char **argv)
 	int i=osip_init(&osip);
 	if (i!=0) {
 		LOG(ALERT) << "cannot init sip lib";
-		return NULL;
+		exit(1);
 	}
 
 	if ((aSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
