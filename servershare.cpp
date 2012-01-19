@@ -133,13 +133,12 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 		// Ki is unknown
 		string upstream_server =
 			gConfig.defines("SubscriberRegistry.UpstreamServer") ?
-			gConfig.getStr("SubscriberRegistry.UpstreamServer") :
-			"";
+			gConfig.getStr("SubscriberRegistry.UpstreamServer") : "";
 		if (upstream_server.length() != 0) {
 			LOG(INFO) << "ki unknown, upstream server";
 			// there's an upstream server for authentication.
 			// TODO - call the upstream server
-			ret = false;
+			return false;
 		} else {
 			// there's no upstream server for authentication.  fake it.
 			string sres2 = imsiGet(imsi, "sres");
@@ -149,14 +148,14 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 				// correct cell phone will calc same sres from same rand
 				imsiSet(imsi, "sres", sres);
 				imsiSet(imsi, "rand", randx);
-				ret = true;
+				return true;
 			} else {
 				LOG(INFO) << "ki unknown, no upstream server, sres cached";
 				// check against cached values of rand and sres
 				string rand2 = imsiGet(imsi, "rand");
 				// TODO - on success, compute and return kc
 				LOG(DEBUG) << "comparing " << sres << " to " << sres2 << " and " << randx << " to " << rand2;
-				ret = strEqual(sres, sres2) && strEqual(randx, rand2);
+				return strEqual(sres, sres2) && strEqual(randx, rand2);
 			}
 		}
 	} else {
@@ -182,8 +181,7 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 		   oss[8] = 0; SRES[4] = 0; // NULL-terminate before string construction
 		   snprintf(oss, 9, "%02X%02X%02X%02X", SRES[0], SRES[1], SRES[2], SRES[3]);
 		   LOG(INFO) << "computed SRES = " << oss;
-		   if(0 == sres.compare(0, 8, (char *)SRES, 8)) ret = true;
-		   else ret = false;
+		   return 0 == strncasecmp(sres.c_str(), oss, 8);
 		  }
 		} 
 		else {// fallback: use external program
@@ -209,7 +207,7 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 		  // first 8 chars are SRES;  rest are Kc
 		  sres2[8] = 0;
 		  LOG(INFO) << "result = " << sres2;
-		  ret = strEqual(sres, sres2);
+		  return strEqual(sres, sres2);
 		}
 	}
 	LOG(INFO) << "returning = " << ret;
