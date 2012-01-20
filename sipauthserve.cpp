@@ -225,7 +225,7 @@ char *processBuffer(char *buffer)
 			  osip_authentication_info_t * auth_header;
 			  osip_authentication_info_init (&auth_header);
 			  osip_authentication_info_set_rspauth (auth_header, osip_strdup(kc.c_str()));
-			  osip_authentication_info_set_qop_options (auth_header, "Kc");
+			  osip_authentication_info_set_qop_options (auth_header, osip_strdup("Kc"));
 			  osip_message_set_authentication_info (response, "Kc");
 			  // And register it.
 			  LOG(INFO) << imsi << " success, registering for IP address " << remote_host;
