@@ -1,0 +1,56 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=utf-8">
+		
+		<title>SIP buddies</title>
+		<style type="text/css" title="currentStyle">
+			@import "/media/css/demo_page.css";
+			@import "/media/css/demo_table.css";
+			@import "media/css/ColVis.css";
+		</style>
+		<script type="text/javascript" charset="utf-8" src="/media/js/jquery.js"></script>
+		<script type="text/javascript" charset="utf-8" src="/media/js/jquery.dataTables.js"></script>
+		<script type="text/javascript" charset="utf-8" src="/media/js/ColVis.js"></script>
+		<script type="text/javascript" charset="utf-8">
+			$(document).ready( function () {
+				var oTable = $('#example').dataTable( {
+					"sScrollX": "100%",
+					"sDom": 'C<"clear">lfrtip'
+				} );
+				for ( var i=3; i<81 ; i++ ) {
+				oTable.fnSetColumnVis( i, false );
+				}
+			} );
+		</script>
+	</head>
+	<body id="dt_example">
+		<div id="container">
+			<div class="full_width big">
+				SipAuthServe web interface
+			</div>
+			
+			<h1>Available users</h1>
+			<form>
+			<div id="demo">
+<table cellpadding="0" cellspacing="0" border="0" class="display" id="example">
+    <!--#exec cmd="sqlite3 -html -header /var/lib/asterisk/sqlite3dir/sqlite3.db 'select * from sip_buddies'|sed 's/<TR><TH>id<\/TH>/<thead><TR><TH>id<\/TH>/'|sed 's/<TH>a3_a8<\/TH>/<TH>a3_a8<\/TH><\/thead>/'|tidy -i -q --show-body-only yes|grep -v 'table>'" -->
+</table>
+			</div>
+		</form>
+		
+			<h1>Installation notes:</h1>
+			<ul>
+			<li>HTML Tidy is required to be installed on the webserver (e. g. "sudo aptitude install tidy").
+			<li>Server-Side Includes have to be enabled on the webserver (e. g. "a2enmod include").
+			</ul>
+		
+			<div class="spacer"></div>
+			<div id="footer" style="text-align:center;">
+				<span style="font-size:10px;">
+					&copy; Max Suraev 2012
+				</span>
+			</div>
+		</div>
+	</body>
+</html>
