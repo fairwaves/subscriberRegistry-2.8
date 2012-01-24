@@ -175,8 +175,9 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 		  else
 		  {
 		   comp128(Ki, Rand, (uint8_t *)&SRES, (uint8_t *)&Kc);
-		   LOG(INFO) << "computed SRES = " << osmo_osmo_hexdump_nospc(SRES,4) << " Kc = " << osmo_osmo_hexdump_nospc(Kc, 8);
+		   LOG(INFO) << "computed SRES = " << osmo_osmo_hexdump_nospc(SRES, 4);
 		   *kc = string(osmo_osmo_hexdump_nospc(Kc, 8));
+		   LOG(INFO) << "computed Kc = " << kc;
 		   return 0 == strncasecmp(sres.c_str(), osmo_osmo_hexdump_nospc(SRES, 4), 8);
 		  }
 		} 
