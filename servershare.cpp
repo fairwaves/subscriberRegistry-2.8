@@ -153,7 +153,7 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 				LOG(INFO) << "ki unknown, no upstream server, sres cached";
 				// check against cached values of rand and sres
 				string rand2 = imsiGet(imsi, "rand");
-				// TODO - on success, compute and return kc
+				LOG(ERR) << "TODO - on success, compute and return Kc";
 				LOG(DEBUG) << "comparing " << sres << " to " << sres2 << " and " << randx << " to " << rand2;
 				return strEqual(sres, sres2) && strEqual(randx, rand2);
 			}
@@ -169,19 +169,15 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 			a3a8 = gConfig.getStr("SubscriberRegistry.A3A8");
 		}
 		if (0 == a3a8.length() || "INTERNAL" == a3a8) {// rely on normal library routine
-		  uint64_t Kc;
-		  uint8_t SRES[5];
-		  uint8_t Ki[16], Rand[16];
+		  uint8_t SRES[4], Ki[16], Rand[16], Kc[8];
 		  if(osmo_hexparse(ki.c_str(), Ki, 16) != 16 || osmo_hexparse(randx.c_str(), Rand, 16) != 16)
 		  { LOG(ALERT) << "failed to parse Ki or RAND!"; ret = false; }
 		  else
 		  {
 		   comp128(Ki, Rand, (uint8_t *)&SRES, (uint8_t *)&Kc);
-		   char oss[9];
-		   oss[8] = 0; SRES[4] = 0; // NULL-terminate before string construction
-		   snprintf(oss, 9, "%02X%02X%02X%02X", SRES[0], SRES[1], SRES[2], SRES[3]);
-		   LOG(INFO) << "computed SRES = " << oss;
-		   return 0 == strncasecmp(sres.c_str(), oss, 8);
+		   LOG(INFO) << "computed SRES = " << osmo_osmo_hexdump_nospc(SRES,4) << " Kc = " << osmo_osmo_hexdump_nospc(Kc, 8);
+		   *kc = string(osmo_osmo_hexdump_nospc(Kc, 8));
+		   return 0 == strncasecmp(sres.c_str(), osmo_osmo_hexdump_nospc(SRES, 4), 8);
 		  }
 		} 
 		else {// fallback: use external program
