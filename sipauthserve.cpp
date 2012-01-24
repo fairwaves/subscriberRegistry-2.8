@@ -224,9 +224,12 @@ char *processBuffer(char *buffer)
 			  osip_message_set_reason_phrase (response, osip_strdup("OK"));
 			  osip_authentication_info_t * auth_header;
 			  osip_authentication_info_init (&auth_header);
-			  osip_authentication_info_set_rspauth (auth_header, osip_strdup(kc.c_str()));
-			  osip_authentication_info_set_qop_options (auth_header, osip_strdup("Kc"));
-			  osip_message_set_authentication_info (response, "Kc");
+			  osip_authentication_info_set_qop_options (auth_header, osip_strdup("auth-int"));
+			  osip_authentication_info_set_rspauth (auth_header, osip_strdup(('"' + kc + '"').c_str()));
+			  osip_authentication_info_set_nonce_count(auth_header,osip_strdup("0"));
+			  char * ai;
+			  osip_authentication_info_to_str (auth_header, &ai); 
+			  osip_message_set_authentication_info (response, ai);
 			  // And register it.
 			  LOG(INFO) << imsi << " success, registering for IP address " << remote_host;
 			  imsiSet(imsi, "ipaddr", remote_host);
