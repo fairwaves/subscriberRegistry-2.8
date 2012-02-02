@@ -223,11 +223,12 @@ char *processBuffer(char *buffer)
 			  osip_message_set_status_code (response, 200);
 			  osip_message_set_reason_phrase (response, osip_strdup("OK"));
 			  osip_authentication_info_t * auth_header;
+			  char * ai, * cksn;
 			  osip_authentication_info_init (&auth_header);
 			  osip_authentication_info_set_qop_options (auth_header, osip_strdup("auth-int"));
 			  osip_authentication_info_set_rspauth (auth_header, osip_strdup(('"' + kc + '"').c_str()));
-			  osip_authentication_info_set_nonce_count(auth_header,osip_strdup("0"));
-			  char * ai;
+			  osip_authentication_info_set_nonce_count(auth_header, osip_strdup("1"));
+			  osip_authentication_info_set_cnonce(auth_header, osip_strdup(cksn));
 			  osip_authentication_info_to_str (auth_header, &ai); 
 			  osip_message_set_authentication_info (response, ai);
 			  // And register it.
