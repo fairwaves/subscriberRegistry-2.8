@@ -56,7 +56,7 @@ string generateRand(string imsi);
 	@param rand random number
 	@param sres corresponsing sres
 */
-bool authenticate(string imsi, string rand, string sres, string *kc);
+bool authenticate(string imsi, string rand, string sres, string *kc, string *cksn);
 
 /**
 	Decode the html query.

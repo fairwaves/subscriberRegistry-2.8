@@ -216,19 +216,19 @@ char *processBuffer(char *buffer)
 			i = osip_list_add (&response->www_authenticates, auth, -1);
 			if (i < 0) LOG(ERR) << "problem adding www_authenticate";
 		} else {
-			string kc;
-			bool sres_good = authenticate(imsi, RAND, SRES, &kc);
+		    string kc, cksn;
+		    bool sres_good = authenticate(imsi, RAND, SRES, &kc, &cksn);
 			LOG(INFO) << "imsi known, 2nd register, auth = " << sres_good;
 			if (sres_good) {// sres matches rand => 200 OK
 			  osip_message_set_status_code (response, 200);
 			  osip_message_set_reason_phrase (response, osip_strdup("OK"));
 			  osip_authentication_info_t * auth_header;
-			  char * ai, * cksn;
+			  char * ai;
 			  osip_authentication_info_init (&auth_header);
 			  osip_authentication_info_set_qop_options (auth_header, osip_strdup("auth-int"));
 			  osip_authentication_info_set_rspauth (auth_header, osip_strdup(('"' + kc + '"').c_str()));
 			  osip_authentication_info_set_nonce_count(auth_header, osip_strdup("1"));
-			  osip_authentication_info_set_cnonce(auth_header, osip_strdup(cksn));
+			  osip_authentication_info_set_cnonce(auth_header, osip_strdup(('"' + cksn + '"').c_str()));
 			  osip_authentication_info_to_str (auth_header, &ai); 
 			  osip_message_set_authentication_info (response, ai);
 			  // And register it.

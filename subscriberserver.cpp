@@ -106,8 +106,8 @@ void generateAuthResponse()
 	string imsi = getArg("imsi");
 	string randx = getArg("rand");
 	string sres = getArg("sres");
-	string kc;
-	bool st = authenticate(imsi, randx, sres, &kc);
+	string kc, cksn;
+	bool st = authenticate(imsi, randx, sres, &kc, &cksn);
 	sresCheck(st);
 }
 

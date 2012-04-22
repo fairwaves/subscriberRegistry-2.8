@@ -124,7 +124,7 @@ inline bool strEqual(string a, string b)
 // verify sres given rand and imsi's ki
 // may set kc
 // may cache sres and rand
-bool authenticate(string imsi, string randx, string sres, string *kc)
+bool authenticate(string imsi, string randx, string sres, string *kc, string *_cksn)
 {
   LOG(DEBUG) << "authenticating IMSI " << imsi << " with  RAND " << randx << " against SRES " << sres << endl;
 	string ki = imsiGet(imsi, "ki");
@@ -164,6 +164,7 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 		ostringstream os;
 		// per user value from subscriber registry
 		string a3a8 = imsiGet(imsi, "a3_a8");
+		int cksn = atoi(imsiGet(imsi, "cksn").c_str());
 		if (a3a8.length() == 0) {
 			// config value is default
 			a3a8 = gConfig.getStr("SubscriberRegistry.A3A8");
@@ -177,7 +178,12 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 		   comp128(Ki, Rand, (uint8_t *)&SRES, (uint8_t *)&Kc);
 		   LOG(INFO) << "computed SRES = " << osmo_osmo_hexdump_nospc(SRES, 4);
 		   *kc = string(osmo_osmo_hexdump_nospc(Kc, 8));
-		   LOG(INFO) << "computed Kc = " << kc;
+		   cksn = (cksn + 1) % 7;// 0..6 allowed, 7 reserved.
+		   stringstream ss;
+		   ss << cksn;
+		   *_cksn = string(ss.str());
+		   imsiSet(imsi, "cksn", *_cksn);
+		   LOG(INFO) << "computed Kc = " << kc << " with CKSN = " << cksn;
 		   return 0 == strncasecmp(sres.c_str(), osmo_osmo_hexdump_nospc(SRES, 4), 8);
 		  }
 		} 
