@@ -103,8 +103,8 @@ string imsiToSip(osip_message_t *sip)
 // is imsi in the database?
 bool imsiFound(string imsi)
 {
-	string x = imsiGet(imsi, "id");
-	return x.length() != 0;
+    string name = imsi.substr(0,4) == "IMSI" ? imsi : "IMSI" + imsi;
+    return sqlite3_exists(gSubscriberRegistry.db(), "sip_buddies", "name", name.c_str());
 }
 
 string imsiClean(string imsi)
