@@ -208,16 +208,19 @@ char *processBuffer(char *buffer)
 			osip_www_authenticate_t *auth;
 			osip_www_authenticate_init(&auth);
 			// auth type is required by osip_www_authenticate_to_str (and therefore osip_message_to_str)
-			string auth_type = "Digest";
-			osip_www_authenticate_set_auth_type(auth, osip_strdup(auth_type.c_str()));
+			osip_www_authenticate_set_auth_type(auth, osip_strdup("Digest"));
 			// returning RAND in www_authenticate header
-			string randz = generateRand(imsi);
+			string randz;
+			stringstream ss;
+			int cksn = generateRand(imsi, &randz);
+			ss << cksn;
 			osip_www_authenticate_set_nonce(auth, osip_strdup(randz.c_str()));
+			osip_www_authenticate_set_opaque(auth, osip_strdup((ss.str()).c_str()));
 			i = osip_list_add (&response->www_authenticates, auth, -1);
 			if (i < 0) LOG(ERR) << "problem adding www_authenticate";
 		} else {
-		    string kc, cksn;
-		    bool sres_good = authenticate(imsi, RAND, SRES, &kc, &cksn);
+		    string kc;
+		    bool sres_good = authenticate(imsi, RAND, SRES, &kc);
 			LOG(INFO) << "imsi known, 2nd register, auth = " << sres_good;
 			if (sres_good) {// sres matches rand => 200 OK
 			  osip_message_set_status_code (response, 200);
@@ -227,8 +230,6 @@ char *processBuffer(char *buffer)
 			  osip_authentication_info_init (&auth_header);
 			  osip_authentication_info_set_qop_options (auth_header, osip_strdup("auth-int"));
 			  osip_authentication_info_set_rspauth (auth_header, osip_strdup(('"' + kc + '"').c_str()));
-			  osip_authentication_info_set_nonce_count(auth_header, osip_strdup("1"));
-			  osip_authentication_info_set_cnonce(auth_header, osip_strdup(('"' + cksn + '"').c_str()));
 			  osip_authentication_info_to_str (auth_header, &ai); 
 			  osip_message_set_authentication_info (response, ai);
 			  // And register it.

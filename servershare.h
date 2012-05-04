@@ -48,7 +48,7 @@ void imsiSet(string imsi, string key, string value);
 	Generate a 128-bit random number.
 	@param imsi imsi of subscriber the random number is for
 */
-string generateRand(string imsi);
+int generateRand(string imsi, string *rand);
 
 /**
 	Authenticate
@@ -56,7 +56,7 @@ string generateRand(string imsi);
 	@param rand random number
 	@param sres corresponsing sres
 */
-bool authenticate(string imsi, string rand, string sres, string *kc, string *cksn);
+bool authenticate(string imsi, string rand, string sres, string *kc);
 
 /**
 	Decode the html query.

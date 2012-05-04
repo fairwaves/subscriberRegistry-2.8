@@ -105,19 +105,18 @@ void generateAuthResponse()
 {
 	string imsi = getArg("imsi");
 	string randx = getArg("rand");
-	string sres = getArg("sres");
-	string kc, cksn;
-	bool st = authenticate(imsi, randx, sres, &kc, &cksn);
+	string sres = getArg("sres"), kc;
+	bool st = authenticate(imsi, randx, sres, &kc);
 	sresCheck(st);
 }
 
 // generate a 128' random number
-void generateRandResponse()
+void generateRandResponse() 
 {
-	string imsi = getArg("imsi");
-	string randx = generateRand(imsi);
-	gResponse.push_back("rand=" + randx);
-	gResponse.push_back("imsi=" + imsi);
+    string imsi = getArg("imsi"), randx;
+    int cksn = generateRand(imsi, &randx);
+    gResponse.push_back("rand=" + randx);
+    gResponse.push_back("imsi=" + imsi);
 }
 
 // generate our http response, putting each line of it into vector response

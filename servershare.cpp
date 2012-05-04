@@ -84,36 +84,47 @@ string soGenerateIt()
 	return os.str();
 }
 
+int next_cksn(string imsi)
+{//update in db and return CKSN value
+    stringstream ss;
+    string old_db = imsiGet(imsi, "cksn");
+    int cksn = (atoi(old_db.c_str()) + 1) % 7;// 0..6 allowed, 7 reserved
+    ss << cksn;
+    imsiSet(imsi, "cksn", ss.str());
+    LOG(DEBUG) << "CKSN bumped from " << old_db << " to " << cksn;
+    return cksn;
+}
 
-
-// generate a 128' random number
-string generateRand(string imsi)
+// generate a 128' random number, update CKSN
+int generateRand(string imsi, string *rand)
 {
 	string ki = imsiGet(imsi, "ki");
-	string ret;
 	if (ki.length() != 0) {
 		LOG(INFO) << "ki is known";
-		// generate and return rand (clear any cached rand or sres)
-		imsiSet(imsi, "rand", "");
+		// generate and return rand (clear any cached cksn, rand and sres)
 		imsiSet(imsi, "sres", "");
-		ret = soGenerateIt();
+		*rand = soGenerateIt();
+		imsiSet(imsi, "rand", *rand);
+		return next_cksn(imsi);
 	} else {
 		string wRand = imsiGet(imsi, "rand");
 		if (wRand.length() != 0) {
 			LOG(INFO) << "ki is unknown, rand is cached";
-			// return cached rand
-			ret = wRand;
+			// return cached rand, cksn untouched
+			*rand = wRand;
+			return 7;
 		} else {
 			LOG(INFO) << "ki is unknown, rand is not cached";
-			// generate rand, cache rand, clear sres, and return rand
+			// generate rand, cache rand, clear sres, update cksn and return rand
 			wRand = soGenerateIt();
 			imsiSet(imsi, "rand", wRand);
 			imsiSet(imsi, "sres", "");
-			ret = wRand;
+			*rand = wRand;
+			return next_cksn(imsi);
 		}
 	}
-	LOG(DEBUG) << "returning RAND " << ret << endl;
-	return ret;
+	LOG(DEBUG) << "returning RAND " << *rand << endl;
+	return 7;
 }
 
 inline bool strEqual(string a, string b)
@@ -124,7 +135,7 @@ inline bool strEqual(string a, string b)
 // verify sres given rand and imsi's ki
 // may set kc
 // may cache sres and rand
-bool authenticate(string imsi, string randx, string sres, string *kc, string *_cksn)
+bool authenticate(string imsi, string randx, string sres, string *kc)
 {
   LOG(DEBUG) << "authenticating IMSI " << imsi << " with  RAND " << randx << " against SRES " << sres << endl;
 	string ki = imsiGet(imsi, "ki");
@@ -161,10 +172,7 @@ bool authenticate(string imsi, string randx, string sres, string *kc, string *_c
 	} else {
 		LOG(INFO) << "ki known";
 		// Ki is known, so do normal authentication
-		ostringstream os;
-		// per user value from subscriber registry
-		string a3a8 = imsiGet(imsi, "a3_a8");
-		int cksn = atoi(imsiGet(imsi, "cksn").c_str());
+		string a3a8 = imsiGet(imsi, "a3_a8"); // per user value from subscriber registry
 		if (a3a8.length() == 0) {
 			// config value is default
 			a3a8 = gConfig.getStr("SubscriberRegistry.A3A8");
@@ -178,17 +186,13 @@ bool authenticate(string imsi, string randx, string sres, string *kc, string *_c
 		   comp128(Ki, Rand, (uint8_t *)&SRES, (uint8_t *)&Kc);
 		   LOG(INFO) << "computed SRES = " << osmo_osmo_hexdump_nospc(SRES, 4);
 		   *kc = string(osmo_osmo_hexdump_nospc(Kc, 8));
-		   cksn = (cksn + 1) % 7;// 0..6 allowed, 7 reserved.
-		   stringstream ss;
-		   ss << cksn;
-		   *_cksn = string(ss.str());
-		   imsiSet(imsi, "cksn", *_cksn);
-		   LOG(INFO) << "computed Kc = " << kc << " with CKSN = " << cksn;
+		   LOG(INFO) << "computed Kc = " << kc;
 		   return 0 == strncasecmp(sres.c_str(), osmo_osmo_hexdump_nospc(SRES, 4), 8);
 		  }
 		} 
 		else {// fallback: use external program
-		  os << a3a8 << " 0x" << ki << " 0x" << randx;
+		    ostringstream os;
+		    os << a3a8 << " 0x" << ki << " 0x" << randx;
 		  // must not put ki into the log
 		  LOG(INFO) << "running " << a3a8 << " fallback" << endl;
 		  FILE *f = popen(os.str().c_str(), "r");
