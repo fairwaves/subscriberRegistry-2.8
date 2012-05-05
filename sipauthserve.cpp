@@ -125,6 +125,19 @@ string imsiClean(string imsi)
 	return imsi;
 }
 
+void osip_pack(osip_message_t * msg, unsigned status, int code, string data, char * reason) {
+    osip_message_set_status_code(msg, status);
+    osip_message_set_reason_phrase(msg, osip_strdup(reason));
+    osip_authentication_info_t * auth_header;
+    char * ai;
+    stringstream ss;   
+    ss << code;
+    osip_authentication_info_init(&auth_header);
+    osip_authentication_info_set_qop_options(auth_header, osip_strdup((ss.str()).c_str()));
+    osip_authentication_info_set_rspauth(auth_header, osip_strdup(('"' + data + '"').c_str()));
+    osip_authentication_info_to_str(auth_header, &ai); 
+    osip_message_set_authentication_info(msg, ai);
+}
 
 char *processBuffer(char *buffer)
 {
@@ -202,37 +215,16 @@ char *processBuffer(char *buffer)
 		if (!RAND || !SRES) {
 			LOG(NOTICE) << "imsi known, 1st register";
 			// no rand and sres => 401 Unauthorized
-			osip_message_set_status_code (response, 401);
-			osip_message_set_reason_phrase (response, osip_strdup("Unauthorized"));
-			// but include rand in www_authenticate
-			osip_www_authenticate_t *auth;
-			osip_www_authenticate_init(&auth);
-			// auth type is required by osip_www_authenticate_to_str (and therefore osip_message_to_str)
-			osip_www_authenticate_set_auth_type(auth, osip_strdup("Digest"));
-			// returning RAND in www_authenticate header
 			string randz;
-			stringstream ss;
 			int cksn = generateRand(imsi, &randz);
-			ss << cksn;
-			osip_www_authenticate_set_nonce(auth, osip_strdup(randz.c_str()));
-			osip_www_authenticate_set_opaque(auth, osip_strdup((ss.str()).c_str()));
-			i = osip_list_add (&response->www_authenticates, auth, -1);
-			if (i < 0) LOG(ERR) << "problem adding www_authenticate";
+			// but include rand in response
+			osip_pack(response, 401, cksn, randz, (char *)"Unauthorized");
 		} else {
 		    string kc;
 		    bool sres_good = authenticate(imsi, RAND, SRES, &kc);
 			LOG(INFO) << "imsi known, 2nd register, auth = " << sres_good;
 			if (sres_good) {// sres matches rand => 200 OK
-			  osip_message_set_status_code (response, 200);
-			  osip_message_set_reason_phrase (response, osip_strdup("OK"));
-			  osip_authentication_info_t * auth_header;
-			  char * ai;
-			  osip_authentication_info_init (&auth_header);
-			  osip_authentication_info_set_qop_options (auth_header, osip_strdup("auth-int"));
-			  osip_authentication_info_set_rspauth (auth_header, osip_strdup(('"' + kc + '"').c_str()));
-			  osip_authentication_info_to_str (auth_header, &ai); 
-			  osip_message_set_authentication_info (response, ai);
-			  // And register it.
+			    osip_pack(response, 200, 7, kc, (char *)"OK"); //pack into auth header and register it.
 			  LOG(INFO) << imsi << " success, registering for IP address " << remote_host;
 			  imsiSet(imsi, "ipaddr", remote_host);
 			  imsiSet(imsi, "port", remote_port);
