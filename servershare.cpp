@@ -33,6 +33,7 @@
 extern "C" {
 #include <osmocom/gsm/comp128.h>
 #include <osmocom/gsm/a5.h>
+#include <osmocom/gsm/milenage.h>
 #include <osmocom/core/utils.h>
 }
 #include "servershare.h"
@@ -177,19 +178,26 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 			// config value is default
 			a3a8 = gConfig.getStr("SubscriberRegistry.A3A8");
 		}
-		if (0 == a3a8.length() || "INTERNAL" == a3a8) {// rely on normal library routine
-		  uint8_t SRES[4], Ki[16], Rand[16], Kc[8];
-		  if(osmo_hexparse(ki.c_str(), Ki, 16) != 16 || osmo_hexparse(randx.c_str(), Rand, 16) != 16)
-		  { LOG(ALERT) << "failed to parse Ki or RAND!"; ret = false; }
-		  else
-		  {
-		   comp128(Ki, Rand, (uint8_t *)&SRES, (uint8_t *)&Kc);
-		   LOG(INFO) << "computed SRES = " << osmo_osmo_hexdump_nospc(SRES, 4);
-		   *kc = string(osmo_osmo_hexdump_nospc(Kc, 8));
-		   LOG(INFO) << "computed Kc = " << kc;
-		   return 0 == strncasecmp(sres.c_str(), osmo_osmo_hexdump_nospc(SRES, 4), 8);
-		  }
+		uint8_t SRES[4], Ki[16], Rand[16], Kc[8];
+		if (osmo_hexparse(ki.c_str(), Ki, 16) != 16 || osmo_hexparse(randx.c_str(), Rand, 16) != 16)
+		{ LOG(ALERT) << "failed to parse Ki or RAND!"; return false; }
+
+		if (0 == a3a8.length() || "INTERNALCOMP128" == a3a8) {// rely on normal library routine
+		    comp128(Ki, Rand, (uint8_t *)&SRES, (uint8_t *)&Kc);
+		    LOG(INFO) << "computed SRES = " << osmo_osmo_hexdump_nospc(SRES, 4);
+		    *kc = string(osmo_osmo_hexdump_nospc(Kc, 8));
+		    LOG(INFO) << "computed Kc = " << kc;
+		    return 0 == strncasecmp(sres.c_str(), osmo_osmo_hexdump_nospc(SRES, 4), 8);
 		} 
+		else if ("MILENAGE" == a3a8) {// use modern key generation
+		    string OPc = imsiGet(imsi, "opc");
+		    if (OPc.length() == 0) { LOG(ALERT) << "missing OPc parameter for MILENAGE!"; return false; }
+		    gsm_milenage(OPc.c_str(), Ki, Rand, (uint8_t *)&SRES, (uint8_t *)&Kc);
+		    LOG(INFO) << "computed SRES = " << osmo_osmo_hexdump_nospc(SRES, 4);
+		    *kc = string(osmo_osmo_hexdump_nospc(Kc, 8));
+		    LOG(INFO) << "computed Kc = " << kc;
+		    return 0 == strncasecmp(sres.c_str(), osmo_osmo_hexdump_nospc(SRES, 4), 8);
+		}
 		else {// fallback: use external program
 		    ostringstream os;
 		    os << a3a8 << " 0x" << ki << " 0x" << randx;
