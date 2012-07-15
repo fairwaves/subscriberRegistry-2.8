@@ -93,6 +93,7 @@ kc                    varchar(33) default '',
 RRLPSupported         int(1) default 1 not null,
 hardware	      VARCHAR(20),
 regTime               INTEGER default 0 NOT NULL,
+opc                   varchar(33) default '',
 cksn                  int(1) default 7,
 a3_a8                 varchar(45) default NULL,
 primary key(id)
