@@ -70,31 +70,27 @@ void prettyPrint(const char *label, osip_message_t *sip)
 	}
 }
 
-string imsiFromSip(osip_message_t *sip)
-{
-	int i;
+string imsiFromSip(osip_message_t *sip) {
 	char *dest;
 	osip_uri_t *fromUri = osip_from_get_url(sip->from);
 	if (!fromUri) {
 		LOG(ERR) << "osip_from_get_url problem";
 		return "";
 	}
-	i = osip_uri_to_str(fromUri, &dest);
+	osip_uri_to_str(fromUri, &dest);
 	string imsi = dest;
 	osip_free(dest);
 	return imsi;
 }
 
-string imsiToSip(osip_message_t *sip)
-{
-	int i;
+string imsiToSip(osip_message_t *sip) {
 	char *dest;
 	osip_uri_t *toUri = osip_to_get_url(sip->to);
 	if (!toUri) {
 		LOG(ERR) << "osip_to_get_url problem";
 		return "";
 	}
-	i = osip_uri_to_str(toUri, &dest);
+	osip_uri_to_str(toUri, &dest);
 	string imsi = dest;
 	osip_free(dest);
 	return imsi;
