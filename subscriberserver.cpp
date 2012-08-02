@@ -117,6 +117,7 @@ void generateRandResponse()
     int cksn = generateRand(imsi, &randx);
     gResponse.push_back("rand=" + randx);
     gResponse.push_back("imsi=" + imsi);
+//    return cksn;
 }
 
 // generate our http response, putting each line of it into vector response

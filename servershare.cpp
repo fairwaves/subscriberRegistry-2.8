@@ -31,9 +31,7 @@
 #include <Configuration.h>
 #include <string.h>
 extern "C" {
-#include <osmocom/gsm/comp128.h>
-#include <osmocom/gsm/a5.h>
-#include <osmocom/gsm/milenage.h>
+#include <osmocom/crypt/auth.h>
 #include <osmocom/core/utils.h>
 }
 #include "servershare.h"
@@ -178,25 +176,52 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 			// config value is default
 			a3a8 = gConfig.getStr("SubscriberRegistry.A3A8");
 		}
-		uint8_t SRES[4], Ki[16], Rand[16], Kc[8];
-		if (osmo_hexparse(ki.c_str(), Ki, 16) != 16 || osmo_hexparse(randx.c_str(), Rand, 16) != 16)
-		{ LOG(ALERT) << "failed to parse Ki or RAND!"; return false; }
+		uint8_t Rand[16], _auts[16];
+		struct osmo_auth_vector _vec;
+		struct osmo_auth_vector *vec = &_vec;
+		memset(vec, 0, sizeof(*vec));
+		memset(_auts, 0, sizeof(_auts));
+		static struct osmo_sub_auth_data auth_dat;
+
+		if (osmo_hexparse(randx.c_str(), Rand, 16) != 16) { LOG(ALERT) << "failed to parse RAND!"; return false; }
 
 		if (0 == a3a8.length() || "INTERNALCOMP128" == a3a8) {// rely on normal library routine
-		    comp128(Ki, Rand, (uint8_t *)&SRES, (uint8_t *)&Kc);
-		    LOG(INFO) << "computed SRES = " << osmo_hexdump_nospc(SRES, 4);
-		    *kc = string(osmo_hexdump_nospc(Kc, 8));
+		    auth_dat.type = OSMO_AUTH_TYPE_GSM;
+		    if (osmo_hexparse(ki.c_str(), auth_dat.u.gsm.ki, sizeof(auth_dat.u.gsm.ki)) < 0) {
+			LOG(ALERT) << "failed to parse Ki!"; return false;
+		    }
+
+		    ret = osmo_auth_gen_vec(vec, &auth_dat, Rand);
+		    if (ret < 0) {
+			LOG(CRIT) << "osmo_auth_gen_vec() failed: " << ret;
+			return false;
+		    }
+		    LOG(INFO) << "computed SRES = " << osmo_hexdump_nospc(vec->sres, sizeof(vec->sres));
+		    *kc = string(osmo_hexdump_nospc(vec->kc, sizeof(vec->kc)));
 		    LOG(INFO) << "computed Kc = " << kc;
-		    return 0 == strncasecmp(sres.c_str(), osmo_hexdump_nospc(SRES, 4), 8);
+		    return 0 == strncasecmp(sres.c_str(), osmo_hexdump_nospc(vec->sres, sizeof(vec->sres)), 8);
 		} 
 		else if ("MILENAGE" == a3a8) {// use modern key generation
+		    auth_dat.type = OSMO_AUTH_TYPE_UMTS;
+		    if (osmo_hexparse(ki.c_str(), auth_dat.u.umts.k, sizeof(auth_dat.u.umts.k)) < 0) {
+			LOG(ALERT) << "failed to parse K!"; return false;
+		    }
 		    string OPc = imsiGet(imsi, "opc");
 		    if (OPc.length() == 0) { LOG(ALERT) << "missing OPc parameter for MILENAGE!"; return false; }
-		    gsm_milenage(OPc.c_str(), Ki, Rand, (uint8_t *)&SRES, (uint8_t *)&Kc);
-		    LOG(INFO) << "computed SRES = " << osmo_hexdump_nospc(SRES, 4);
-		    *kc = string(osmo_hexdump_nospc(Kc, 8));
+		    if (osmo_hexparse(OPc.c_str(), auth_dat.u.umts.opc, sizeof(auth_dat.u.umts.opc)) < 0) {
+			 LOG(ALERT) << "failed to parse OPc parameter for MILENAGE!"; return false;
+		    }
+		    auth_dat.u.umts.opc_is_op = 0;
+
+		    ret = osmo_auth_gen_vec(vec, &auth_dat, Rand);
+		    if (ret < 0) {
+			LOG(CRIT) << "osmo_auth_gen_vec() failed: " << ret;
+			return false;
+		    }
+		    LOG(INFO) << "computed SRES = " << osmo_hexdump_nospc(vec->sres, sizeof(vec->sres));
+		    *kc = string(osmo_hexdump_nospc(vec->kc, sizeof(vec->kc)));
 		    LOG(INFO) << "computed Kc = " << kc;
-		    return 0 == strncasecmp(sres.c_str(), osmo_hexdump_nospc(SRES, 4), 8);
+		    return 0 == strncasecmp(sres.c_str(), osmo_hexdump_nospc(vec->sres, sizeof(vec->sres)), 8);
 		}
 		else {// fallback: use external program
 		    ostringstream os;
@@ -225,8 +250,8 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 		  return strEqual(sres, sres2);
 		}
 	}
-	LOG(INFO) << "returning = " << ret;
-	return ret;
+// nothing good could have happened if we end up this far :)
+	return false;
 }
 void decodeQuery(map<string,string> &args)
 {
