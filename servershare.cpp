@@ -185,7 +185,7 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 
 		if (osmo_hexparse(randx.c_str(), Rand, 16) != 16) { LOG(ALERT) << "failed to parse RAND!"; return false; }
 
-		if (0 == a3a8.length() || "INTERNALCOMP128" == a3a8) {// rely on normal library routine
+		if (0 == a3a8.length() || "COMP128" == a3a8) {// rely on normal library routine
 		    auth_dat.type = OSMO_AUTH_TYPE_GSM;
 		    if (osmo_hexparse(ki.c_str(), auth_dat.u.gsm.ki, sizeof(auth_dat.u.gsm.ki)) < 0) {
 			LOG(ALERT) << "failed to parse Ki!"; return false;
