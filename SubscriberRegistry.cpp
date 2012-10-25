@@ -34,6 +34,7 @@
 #include <sstream>
 #include <fstream>
 #include <Configuration.h>
+#include <unistd.h>
 
 extern ConfigurationTable gConfig;
 

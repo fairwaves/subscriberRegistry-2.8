@@ -37,7 +37,7 @@
 #include <string.h>
 #include "servershare.h"
 #include "SubscriberRegistry.h"
-
+#include <unistd.h>
 
 using namespace std;
 
