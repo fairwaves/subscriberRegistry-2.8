@@ -220,7 +220,11 @@ char *processBuffer(char *buffer)
 		    bool sres_good = authenticate(imsi, RAND, SRES, &kc);
 			LOG(INFO) << "imsi known, 2nd register, auth = " << sres_good;
 			if (sres_good) {// sres matches rand => 200 OK
-			    osip_pack(response, 200, 7, kc, (char *)"OK"); //pack into auth header and register it.
+			    string a5 = imsiGetA5(imsi);
+			    unsigned a5_ver = 0;
+			    if ("MILENAGE" == a5) a5_ver = 3;
+			    if ("COMP128" == a5) a5_ver = 1;
+			    osip_pack(response, 200, a5_ver, kc, (char *)"OK"); //pack into auth header and register it.
 			  LOG(INFO) << imsi << " success, registering for IP address " << remote_host;
 			  imsiSet(imsi, "ipaddr", remote_host);
 			  imsiSet(imsi, "port", remote_port);

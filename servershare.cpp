@@ -131,6 +131,15 @@ inline bool strEqual(string a, string b)
 	return 0 == strcasecmp(a.c_str(), b.c_str());
 }
 
+string imsiGetA5(string imsi) {
+    string a3a8 = imsiGet(imsi, "a3_a8"); // per user value from subscriber registry
+    if (a3a8.length() == 0) {
+	// config value is default
+	a3a8 = gConfig.getStr("SubscriberRegistry.A3A8");
+    }
+    return a3a8;
+}
+
 // verify sres given rand and imsi's ki
 // may set kc
 // may cache sres and rand
@@ -171,11 +180,7 @@ bool authenticate(string imsi, string randx, string sres, string *kc)
 	} else {
 		LOG(INFO) << "ki known";
 		// Ki is known, so do normal authentication
-		string a3a8 = imsiGet(imsi, "a3_a8"); // per user value from subscriber registry
-		if (a3a8.length() == 0) {
-			// config value is default
-			a3a8 = gConfig.getStr("SubscriberRegistry.A3A8");
-		}
+		string a3a8 = imsiGetA5(imsi);
 		uint8_t Rand[16], _auts[16];
 		struct osmo_auth_vector _vec;
 		struct osmo_auth_vector *vec = &_vec;

@@ -36,6 +36,8 @@ using namespace std;
 */
 string imsiGet(string imsi, string key);
 
+string imsiGetA5(string imsi);
+
 /**
 	Set a subscriber's property.
 	@param imsi imsi of the subscriber
