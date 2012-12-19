@@ -160,14 +160,14 @@ int SubscriberRegistry::init()
 	if (p == string::npos) {
 		LOG(EMERG) << "SubscriberRegistry.db not in a directory?";
 		mDB = NULL;
-		return;
+		return 1;
 	}
 	string dir = ldb.substr(0, p);
 	struct stat buf;
 	if (stat(dir.c_str(), &buf)) {
 		LOG(EMERG) << dir << " does not exist";
 		mDB = NULL;
-		return;
+		return 1;
 	} 
 	int rc = sqlite3_open(ldb.c_str(),&mDB);
 	if (rc) {
